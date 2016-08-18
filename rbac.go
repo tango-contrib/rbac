@@ -1,6 +1,9 @@
 package rbac
 
 import (
+	"reflect"
+	"sync"
+
 	"github.com/lunny/tango"
 	"github.com/mikespook/gorbac"
 	"github.com/tango-contrib/session"
@@ -64,12 +67,29 @@ var _ manager = &Manager{}
 // RBAC return a rbac handler.
 func RBAC(rbac *gorbac.RBAC, sessions *session.Sessions, opts ...Options) tango.HandlerFunc {
 	opt := prepareOptions(opts)
+	var cachePerms = make(map[reflect.Value]string)
+	var cachePermsLock sync.Mutex
+
 	return func(ctx *tango.Context) {
 		if action := ctx.Action(); action != nil {
 			if mgr, ok := action.(manager); ok {
 				mgr.SetRBACSession(opt, sessions, ctx)
 			}
-			if permTag := ctx.ActionTag("Perm"); permTag != "" {
+
+			var permTag string
+			var ok bool
+			actionValue := ctx.ActionValue()
+
+			cachePermsLock.Lock()
+			if permTag, ok = cachePerms[actionValue]; !ok {
+				permTag = ctx.ActionTag("Perm")
+				if len(permTag) > 0 {
+					cachePerms[actionValue] = permTag
+				}
+			}
+			cachePermsLock.Unlock()
+
+			if permTag != "" {
 				pA := gorbac.NewStdPermission(permTag)
 				roles, ok := sessions.Session(ctx.Req(), ctx.ResponseWriter).Get(opt.RoleSessionKey).([]string)
 				if !ok {
