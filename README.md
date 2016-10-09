@@ -59,6 +59,40 @@ func main() {
 }
 ```
 
+* If you want to give difference perm for GET and POST, then you can give a tag
+
+```Go
+type Action struct {
+	Perm `GET:"read" POST:"write"`
+}
+```
+
+```Go
+type Action struct {
+	Role `GET:"reader" POST:"writer"`
+}
+```
+
+* If you want to dynamic perm, you can use `rbac.PermTager` and `rbac.RolesTager` interfaces.
+
+```Go
+type Action struct {
+}
+
+func (a *Action) PermTag() string {
+	return `GET:"read" POST:"write"`
+}
+```
+
+```Go
+type Action struct {
+}
+
+func (a *Action) RolesTag() string {
+	return `GET:"reader" POST:"writer"`
+}
+```
+
 ## Getting Help
 
 - [API Reference](https://gowalker.org/github.com/tango-contrib/rbac)
