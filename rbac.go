@@ -166,19 +166,20 @@ func RBAC(rbac *gorbac.RBAC, sessions *session.Sessions, opts ...Options) tango.
 			}
 
 			if len(permTag) > 0 {
-				roles, ok := sessions.Session(ctx.Req(), ctx.ResponseWriter).Get(opt.RoleSessionKey).([]string)
-				if !ok {
-					opt.OnNoPerm(ctx)
-					return
-				}
 				tag, ok, hasColon := lookup(permTag, ctx.Req().Method)
 				if hasColon {
-					if !ok {
-						opt.OnNoPerm(ctx)
+					if !ok || tag == "" {
+						ctx.Next()
 						return
 					}
 				} else {
 					tag = permTag
+				}
+
+				roles, ok := sessions.Session(ctx.Req(), ctx.ResponseWriter).Get(opt.RoleSessionKey).([]string)
+				if !ok {
+					opt.OnNoPerm(ctx)
+					return
 				}
 
 				var pA gorbac.Permission
@@ -209,20 +210,20 @@ func RBAC(rbac *gorbac.RBAC, sessions *session.Sessions, opts ...Options) tango.
 			}
 
 			if len(rolesTag) > 0 {
-				roles, ok := sessions.Session(ctx.Req(), ctx.ResponseWriter).Get(opt.RoleSessionKey).([]string)
-				if !ok {
-					opt.OnNoPerm(ctx)
-					return
-				}
-
 				tag, ok, hasColon := lookup(rolesTag, ctx.Req().Method)
 				if hasColon {
-					if !ok {
-						opt.OnNoPerm(ctx)
+					if !ok || tag == "" {
+						ctx.Next()
 						return
 					}
 				} else {
 					tag = rolesTag
+				}
+
+				roles, ok := sessions.Session(ctx.Req(), ctx.ResponseWriter).Get(opt.RoleSessionKey).([]string)
+				if !ok {
+					opt.OnNoPerm(ctx)
+					return
 				}
 
 				for _, role := range roles {
